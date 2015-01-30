@@ -1,0 +1,277 @@
+package storm.etl.log
+
+import storm.etl.log.bean.LogEntry
+import java.lang.String
+import java.text.SimpleDateFormat
+import storm.etl.log.bean.MessageToRedis
+import java.util.List
+import storm.etl.log.util.DataType
+
+global String separator;
+
+ rule "transformer_suc_num"
+       when
+          l: LogEntry(l.getType()== "transformer_suc_num")
+       then
+           separator="@";
+           //pre+host +groupId+topic+sucNum+date
+           String content=l.getLogContent();
+           String[] contents=content.split("\\$");
+           SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMddHHmm");
+           String date=sdf.format(Long.parseLong(contents[5]));
+
+           List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+
+            redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+            redisRecords.add(new MessageToRedis(contents[1]+separator+"t-num"+separator+date,
+                            contents[4],DataType.LONG));  //host@t-num@date
+            redisRecords.add(new MessageToRedis(contents[1]+separator+"group-id"+separator+date,
+                            contents[2],DataType.STRING)); //host@groupId@date
+            redisRecords.add(new MessageToRedis("group-id"+separator+contents[2]+separator+date,
+                            contents[4],DataType.LONG));  //groupId@date
+
+            sdf=new SimpleDateFormat("yyyyMMdd");//以天为单位
+            date=sdf.format(Long.parseLong(contents[5]));
+            redisRecords.add(new MessageToRedis("t-num"+separator+contents[2]+separator+date,contents[4],DataType.LONG));
+end
+
+rule "transformer_err_num"
+       when
+          l: LogEntry(l.getType()== "transformer_err_num")
+       then
+           separator="@";
+           //pre+host +groupId+topic+errNum+date
+           String content=l.getLogContent();
+           String[] contents=content.split("\\$");
+           SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMddHHmm");
+           String date=sdf.format(Long.parseLong(contents[5]));
+
+           List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+
+           redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+           redisRecords.add(new MessageToRedis(contents[1]+separator+"t-num"+separator+date,
+                             contents[4],DataType.LONG));  //host@t-num@date
+           redisRecords.add(new MessageToRedis("group-id"+separator+contents[2]+separator+date,
+                             contents[4],DataType.LONG));  //groupId@date
+
+           sdf=new SimpleDateFormat("yyyyMMdd");//以天为单位
+           date=sdf.format(Long.parseLong(contents[5]));
+           //host@t-num-err@date
+           redisRecords.add(new MessageToRedis(contents[1]+separator+"t-num-err"+separator+date,
+                    contents[4],DataType.LONG));
+           //t-num@groupId@date
+           redisRecords.add(new MessageToRedis("t-num"+separator+contents[2]+separator+date,
+                    contents[4],DataType.LONG));
+end
+
+rule "transformer_filter_num"
+       when
+          l: LogEntry(l.getType()== "transformer_filter_num")
+       then
+           separator="@";
+           //pre+host +groupId+topic+filterNum+date
+           String content=l.getLogContent();
+           String[] contents=content.split("\\$");
+           SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMddHHmm");
+           String date=sdf.format(Long.parseLong(contents[5]));
+
+           List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+
+           redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+           sdf=new SimpleDateFormat("yyyyMMdd");//以天为单位
+           date=sdf.format(Long.parseLong(contents[5]));
+           //t-num@groupId@date
+           redisRecords.add(new MessageToRedis("t-filter-num"+separator+contents[2]+separator+date,
+                    contents[4],DataType.LONG));
+end
+
+rule "loader_suc_num"
+       when
+          l: LogEntry(l.getType()== "loader_suc_num")
+       then
+           separator="@";
+           //pre + host +groupId+topic+sucNum+date
+           String content=l.getLogContent();
+           String[] contents=content.split("\\$");
+           SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMddHHmm");
+           String date=sdf.format(Long.parseLong(contents[5]));
+
+           List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+           redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+           //host@l-num@date
+           redisRecords.add(new MessageToRedis(contents[1]+separator+"l-num"+separator+date,contents[4],DataType.LONG));
+           //host@group-id@date
+           redisRecords.add(new MessageToRedis(contents[1]+separator+"group-id"+separator+date,contents[2],DataType.STRING));
+
+           sdf=new SimpleDateFormat("yyyyMMdd");//以天为单位
+           date=sdf.format(Long.parseLong(contents[5]));
+           //l-num@groupId@@date
+           redisRecords.add(new MessageToRedis("l-num"+separator+contents[2]+separator+date,contents[4],DataType.LONG));
+end
+
+rule "loader_err_num"
+       when
+          l: LogEntry(l.getType()== "loader_err_num")
+       then
+           separator="@";
+           //pre + host +groupId+topic+errNum+date
+           String content=l.getLogContent();
+           String[] contents=content.split("\\$");
+           SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMddHHmm");
+           String date=sdf.format(Long.parseLong(contents[5]));
+
+           List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+           redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+           //host@l-num@date
+           redisRecords.add(new MessageToRedis(contents[1]+separator+"l-num"+separator+date,contents[4],DataType.LONG));
+
+           sdf=new SimpleDateFormat("yyyyMMdd");//以天为单位
+           date=sdf.format(Long.parseLong(contents[5]));
+            //host@l-num-err@date
+           redisRecords.add(new MessageToRedis(contents[1]+separator+"l-num-err"+separator+date,contents[4],DataType.LONG));
+           //l-num@groupId@@date
+           redisRecords.add(new MessageToRedis("l-num"+separator+contents[2]+separator+date,contents[4],DataType.LONG));
+end
+
+rule "create_num"
+       when
+          l: LogEntry(l.getType()== "create_num")
+       then
+           separator="@";
+           //pre + host +groupId+topic+createNum+date
+           String content=l.getLogContent();
+           String[] contents=content.split("\\$");
+           SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMddHHmm");
+           String date=sdf.format(Long.parseLong(contents[5]));
+
+           List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+           redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+           //host@l-num-create@date
+           redisRecords.add(new MessageToRedis(contents[1]+separator+"l-num-create"+separator+date,contents[4],DataType.LONG));
+end
+
+rule "modify_num"
+       when
+          l: LogEntry(l.getType()== "modify_num")
+       then
+           separator="@";
+           //pre + host +groupId+topic+modifyNum+date
+           String content=l.getLogContent();
+           String[] contents=content.split("\\$");
+           SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMddHHmm");
+           String date=sdf.format(Long.parseLong(contents[5]));
+
+           List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+           redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+           //host@l-num-modify@date
+           redisRecords.add(new MessageToRedis(contents[1]+separator+"l-num-modify"+separator+date,contents[4],DataType.LONG));
+end
+
+rule "transformer_time"
+      when
+          l: LogEntry(l.getType()== "transformer_time")
+      then
+          separator="@";
+          //pre+host+groupId+topic+mean+date
+          String content=l.getLogContent();
+          String[] contents=content.split("\\$");
+          SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMddHHmm");
+          String date=sdf.format(Long.parseLong(contents[5]));
+
+          List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+          redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+          redisRecords.add(new MessageToRedis(contents[1]+separator+"t-duration-mean"+separator+date,
+                    contents[4],DataType.LONG));//host@t-duration-mean@date
+end
+
+rule "loader_time"
+       when
+             l: LogEntry(l.getType()== "loader_time")
+       then
+             separator="@";
+             //pre+host +groupId+topic+mean+date
+             String content=l.getLogContent();
+             String[] contents=content.split("\\$");
+             SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMddHHmm");
+             String date=sdf.format(Long.parseLong(contents[5]));
+
+             List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+             redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+             redisRecords.add(new MessageToRedis(contents[1]+separator+"l-duration-mean"+separator+date,
+                    contents[4],DataType.LONG));  //host@l-duration-mean@date
+end
+
+ rule "mongo_num"
+       when
+          l: LogEntry(l.getType()== "mongo_num")
+       then
+           separator="@";
+           //pre+host +groupId+topic+mongoNum+date
+           String content=l.getLogContent();
+           String[] contents=content.split("\\$");
+           SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMdd");//以天为单位
+           String date=sdf.format(Long.parseLong(contents[5]));
+
+            List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+            redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+            redisRecords.add(new MessageToRedis("mongo-num"+separator+contents[2]+separator+date,
+                     contents[4],DataType.LONG));//mongo-num@groupId@date
+  end
+
+ rule "produce_num"
+       when
+          l: LogEntry(l.getType()== "produce_num")
+       then
+           separator="@";
+           //pre+host+kafka+topic+shopId+kafkaNum+date
+           String content=l.getLogContent();
+           String[] contents=content.split("\\$");
+           List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+           SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMdd");//以天为单位
+           String date=sdf.format(Long.parseLong(contents[6]));
+           redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+           redisRecords.add(new MessageToRedis("produce-shop-num"+separator+contents[4]+separator+date,contents[5],DataType.LONG));
+
+            //produce-num@kafka@topic@date
+            redisRecords.add(new MessageToRedis("produce-num"+separator+contents[2]+separator+contents[3]+separator+date,
+                    contents[5],DataType.LONG));
+            //以分为单位
+            sdf=new SimpleDateFormat("yyyyMMddHHmm");
+            date=sdf.format(Long.parseLong(contents[6]));
+            redisRecords.add(new MessageToRedis(contents[1]+separator+"produce-num"+separator+date,
+                   contents[5],DataType.LONG));
+  end
+
+rule "transformer_loader_num"
+       when
+          l: LogEntry(l.getType()== "transformer_loader_num")
+       then
+           separator="@";
+           //pre+host+groupId+topic+transformerLoaderNum+date
+           String content=l.getLogContent();
+           String[] contents=content.split("\\$");
+           SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMdd");//以天为单位
+           String date=sdf.format(Long.parseLong(contents[5]));
+
+           List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+           redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+           redisRecords.add(new MessageToRedis("transformer-loader-num"+separator+contents[2]+separator+date,
+                    contents[4],DataType.LONG));//transformer-loader-num@group id@date
+end
+
+rule "shop_num"
+       when
+          l: LogEntry(l.getType()== "shop_num")
+       then
+           separator="@";
+           //pre+host+shopId+topic+shopNum+date
+           String content=l.getLogContent();
+           String[] contents=content.split("\\$");
+           SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMdd");//以天为单位
+           String date=sdf.format(Long.parseLong(contents[5]));
+
+           List<MessageToRedis> redisRecords=l.getMessagesToRedis();
+           redisRecords.add(new MessageToRedis("logNum","1",DataType.LONG));
+           redisRecords.add(new MessageToRedis("shop-num"+separator+contents[2]+separator+date,
+                   contents[4],DataType.LONG));//shop-num@shop id@date
+end
